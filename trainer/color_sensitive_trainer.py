@@ -1,29 +1,23 @@
 # color_sensitive_trainer.py
 import torch
-from swift import Seq2SeqTrainer  # ms-swift 训练器
+from trl import SFTTrainer
+from network import SSIMLoss
 
-class ColorSensitiveTrainer(Seq2SeqTrainer):
+class ColorSensitiveTrainer(SFTTrainer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-    def compute_loss(self, model, inputs, return_outputs=False):
-        labels = inputs.get("labels")
-        importance_mask = inputs.pop("importance_mask", None)
-        outputs = model(**inputs)
-
-        logits = outputs.logits
-        shift_logits = logits[..., :-1, :].contiguous()
-        shift_labels = labels[..., 1:].contiguous()
-        if importance_mask is not None:
-            shift_importance = importance_mask[..., 1:].contiguous()
-        else:
-            shift_importance = torch.ones_like(shift_labels, dtype=torch.float)
-
-        loss_fct = torch.nn.CrossEntropyLoss(reduction="none")
-        per_token_loss = loss_fct(
-            shift_logits.view(-1, shift_logits.size(-1)),
-            shift_labels.view(-1)
-        )
-
-        weighted_loss = (per_token_loss * shift_importance.view(-1)).sum() / shift_importance.sum()
-
-        return (weighted_loss, outputs) if return_outputs else weighted_loss
+        self.ssim_loss = SSIMLoss()
+        self._ssim_step_counter = 0
+        
+    def compute_loss(self, model, inputs, return_outputs=False, num_items_in_batch=None):
+        mode = "train" if self.model.training else "eval"
+        (loss, outputs) = super().compute_loss(model, inputs, return_outputs=True, num_items_in_batch=num_items_in_batch)
+        ori_image = outputs.get("ori_images")
+        enhance_image = outputs.get("enhance_images")
+        # image_pixels = inputs.get("pixel_values") # pixel_values is the reshaped enhance image
+        ssim_loss = self.ssim_loss(ori_image, enhance_image)
+        ssim_weight = 1 - min(0.8, self._ssim_step_counter / 500)
+        self._ssim_step_counter += 1
+        loss = (1-ssim_weight) * loss + ssim_weight * ssim_loss
+        self._metrics[mode]["ssim_loss"].append(ssim_loss.item())
+        return (loss, outputs) if return_outputs else loss  

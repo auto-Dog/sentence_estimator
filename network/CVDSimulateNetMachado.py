@@ -74,7 +74,6 @@ class CVDSimulateNetMachado(nn.Module):
                 srgb_transformed = srgb_transformed.squeeze(0)
         elif len(original_shape) == 4 and original_shape[-1] == 3:  # 原为 (B, H, W, 3)
             srgb_transformed = srgb_transformed.permute(0, 2, 3, 1)
-        
         return srgb_transformed
     
     def simulate_pil(self, pil_image):

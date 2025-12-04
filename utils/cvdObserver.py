@@ -27,11 +27,15 @@ class cvdSimulateNet(nn.Module):
         xyz_to_lms_mat = np.array([[0.34*beta_L, 0.69*beta_L, -0.076*beta_L ],
                         [-0.39*beta_M, 1.17*beta_M, 0.049*beta_M ],
                         [0.038*beta_S, -0.043*beta_S, 0.48*beta_S]])
-        self.xyz_to_lms_mat = torch.from_numpy(xyz_to_lms_mat).float()
+        # self.xyz_to_lms_mat = torch.from_numpy(xyz_to_lms_mat).float()
+        self.register_buffer('xyz_to_lms_mat', torch.from_numpy(xyz_to_lms_mat).float())
         rgb_to_xyz_mat = np.array([[0.4124,0.3576,0.1805],
                                    [0.2126,0.7152,0.0722],
                                    [0.0193,0.1192,0.9505]])   # BT 709.2
-        self.rgb_to_xyz_mat = torch.from_numpy(rgb_to_xyz_mat).float()
+        # self.rgb_to_xyz_mat = torch.from_numpy(rgb_to_xyz_mat).float()
+        self.register_buffer('rgb_to_xyz_mat', torch.from_numpy(rgb_to_xyz_mat).float())
+        ref_threshold = torch.tensor([0.586,0.293,0.025]).float()
+        self.register_buffer('ref_threshold', ref_threshold)
 
     def einsum_dot_tensor(self,batched_image,matrix):    # input BCHW
         return torch.einsum('vi,biju->bvju',matrix,batched_image)
@@ -39,14 +43,14 @@ class cvdSimulateNet(nn.Module):
     def sRGB_to_alms(self,image_sRGB:torch.tensor):
         if self.cuda_flag:
             mask_srgb = (image_sRGB<=0.04045)
-            mask_srgb= mask_srgb.cuda()
-            self.xyz_to_lms_mat=self.xyz_to_lms_mat.cuda()
-            self.rgb_to_xyz_mat=self.rgb_to_xyz_mat.cuda()
-            linear_RGB = torch.zeros_like(image_sRGB).cuda()
-            image_xyz = torch.zeros_like(image_sRGB).cuda()
-            image_alms = torch.zeros_like(image_sRGB).cuda()
-            linear_RGB[mask_srgb] = image_sRGB[mask_srgb]/12.92
-            linear_RGB[~mask_srgb] = torch.pow((image_sRGB[~mask_srgb]+0.055)/1.055,torch.tensor(2.4).cuda())# decode to linear
+            # linear_RGB = torch.zeros_like(image_sRGB).to(image_sRGB.device,dtype=image_sRGB.dtype)
+            image_xyz = torch.zeros_like(image_sRGB).to(image_sRGB.device,dtype=image_sRGB.dtype)
+            image_alms = torch.zeros_like(image_sRGB).to(image_sRGB.device,dtype=image_sRGB.dtype)
+            tmp_32_image_sRGB = image_sRGB.to(dtype=torch.float32)  # pow运算需要在32bit精度下运行
+            linear_RGB = torch.zeros_like(tmp_32_image_sRGB).to(tmp_32_image_sRGB.device,dtype=tmp_32_image_sRGB.dtype)
+            linear_RGB[mask_srgb] = tmp_32_image_sRGB[mask_srgb]/12.92
+            linear_RGB[~mask_srgb] = ((tmp_32_image_sRGB[~mask_srgb] + 0.055) / 1.055) ** 2.4
+            linear_RGB = linear_RGB.to(dtype=image_sRGB.dtype)
         else:
             mask_srgb = (image_sRGB<=0.04045)
             linear_RGB = torch.zeros_like(image_sRGB)
@@ -87,8 +91,7 @@ class cvdSimulateNet(nn.Module):
         '''
 
         # # 即使加了高斯噪声，模型也可以从局部均值求解得到某颜色的精确值。因此，需要量化，让CVD和正常人的LMS空间分辨率一样。
-        ref_threshold = torch.tensor([0.586,0.293,0.025]).float().to(image_alms.device)
-        ref_threshold = torch.sqrt(ref_threshold* Y_max)/ Y_max  # 参考阈值
+        ref_threshold = torch.sqrt(self.ref_threshold* Y_max)/ Y_max  # 参考阈值
         if len(image_alms.shape)==4:
             ref_threshold = ref_threshold.unsqueeze(0).unsqueeze(-1).unsqueeze(-1)
         elif len(image_alms.shape)==3:
@@ -184,7 +187,7 @@ if __name__ == '__main__':
     print(image_sample.is_leaf)
     # Test loss backward ability
     image_sample.requires_grad = True
-    # image_sample = image_sample.cuda()
+    # image_sample = image_sample.to(image_sRGB.device)
     image_sample_o = myobserver(image_sample)
     # image_loss = torch.mean(torch.exp(-image_sample_o))
     # image_loss.backward()

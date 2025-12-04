@@ -10,3 +10,4 @@ from .configs import *
 from .utils import load_pretrained_weights
 from .colorLoss_ablation import colorLossAbl
 from .CVDSimulateNetMachado import CVDSimulateNetMachado
+from .hierarchicalModel import HierarchicalModel
