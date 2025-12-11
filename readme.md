@@ -11,22 +11,24 @@ For CVD, L/M channel output is close to each other, causing dimension reduction.
 -[x] 1. Filter Model    
 -[x] 2. Degradation Model (CVD simulator with torch framework)    
 -[x] 3. DIY SFT Trainer (Train on color words only)    
--[o] 4. DIY Processor  
+-[x] 4. DIY Processor  
     -[x] * Design a data collator. Make sure the padding works  
     -[x] * Recover the image from the image token.   
     ~~-[] * Let a token based filter to process image. Then recover the image. ~~  
 -[] 4. Pipeline (Join models, and Training script)    
     -[x] * Freeze Parts  
     -[x] * Concat model with proper dtype and device  
-    -[] * Try the pipeline  
+    -[x] * Try the pipeline  
     -[x] * Add multitarget loss  
     
 DEBUG：
--[] Data-Trainer
--[] Processor
--[] Inference (Model)
--[] Batch Inference
--[] Trainer
+-[x] Data-Trainer
+-[x] Processor
+-[x] Inference (Model)
+-[x] Batch Inference
+-[x] Trainer
+
+-[] DP (Data Parallel)
   
 ## Discussion
 * 用哪个框架？

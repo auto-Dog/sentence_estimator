@@ -86,7 +86,7 @@ class ColorSensitiveCollator:
         # for i, t in enumerate(texts):   # debug
             # count_img = t.count("<|image_pad|>")  # Qwen-VL 的图像占位符 # debug
             # print(f"  Sample {i}: {count_img} <image> tokens") # debug
-        batch = self.processor(text=texts, images=image_inputs, return_tensors="pt", padding=True, images_kwargs={"do_rescale": False})
+        batch = self.processor(text=texts, images=image_inputs, return_tensors="pt", padding=True)
         image_batch = [torch.from_numpy(np.array(image)).permute(2, 0, 1)/255. for image in image_inputs]
         image_batch = torch.stack(image_batch, dim=0).to(batch["pixel_values"].device)
         batch["ori_images"] = image_batch

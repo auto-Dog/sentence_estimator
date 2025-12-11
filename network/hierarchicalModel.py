@@ -42,11 +42,13 @@ class HierarchicalModel(PreTrainedModel):
         self.vlm_model = vlm_model
         
         # 可学习模块（确保是 nn.Module）
-        # self.color_filter = color_filter
+        self.color_filter = color_filter
         class debugFilter(nn.Module):
+            def __init__(self):
+                super().__init__()
             def forward(self,x):
                 return x
-        self.color_filter = debugFilter()
+        # self.color_filter = debugFilter()
         self.cvd_simulator = cvd_simulator
         self.trans_compose_forward = transforms.Compose(
                 [transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])]
@@ -108,6 +110,7 @@ class HierarchicalModel(PreTrainedModel):
             ori_images = ori_images.to(dtype=self.vlm_model.dtype)
             processed = self.color_filter(ori_images)
             processed = self.cvd_simulator(processed)
+            processed = self.trans_compose_forward(processed)
             pixel_values, grid = self._encode_images(processed)
             kwargs["pixel_values"] = pixel_values
             kwargs.setdefault("image_grid_thw", grid)

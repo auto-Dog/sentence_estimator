@@ -17,7 +17,7 @@ import torchvision.transforms as transforms
 import cv2
 
 # ===== 基本设置 =====
-MODEL_NAME = "/root/sentence_estimator/output_color_sensitive/checkpoint-1000/"  # 或任何支持 swift 的多模态模型
+MODEL_NAME = "/root/sentence_estimator/output_color_sensitive/deu80-checkpoint-500/"  # 或任何支持 swift 的多模态模型
 DATA_PATH = "/root/color_150k.json"  # SFT 数据：包含 {"instruction": ..., "output": ...}
 OUTPUT_DIR = "./output_color_sensitive_enhance"
 CVD_TYPE = "deutan_80"
@@ -35,11 +35,11 @@ processor = AutoProcessor.from_pretrained(MODEL_NAME)
 collator = ColorSensitiveCollator(processor)
 
 model = HierarchicalModel(
-    cvd_simulator=cvdSimulateNet(cvd_type=CVD_TYPE, cuda=True, batched_input=True),
-    color_filter=colorFilter(),
+    cvd_simulator=cvdSimulateNet(cvd_type=CVD_TYPE, cuda=True, batched_input=True).to(device,dtype=dtype),
+    color_filter=colorFilter().to(device,dtype=dtype),
     vlm_model=model,
 )
-model.to(device,dtype=dtype)
+# model.to(device,dtype=dtype)
 
 print(model)    # 显示模型结构
 # # 只训练colorFilter部分
@@ -63,6 +63,7 @@ training_args = SFTConfig(
     save_steps=500,
     eval_strategy='steps',
     eval_steps=500,
+    save_total_limit=1
 )
 
 # ===== 加载数据 =====#
@@ -121,13 +122,13 @@ inputs = processor(
     images=[image], 
     padding=True,
     return_tensors = "pt",
-).to("cuda")
+).to(device)
 img = cv2.imread(image)
 img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 img = cv2.resize(img, (640,480))
 transf = transforms.ToTensor()
 img_tensor = transf(img)
-inputs["ori_images"] = img_tensor.unsqueeze(0).to("cuda")
+inputs["ori_images"] = img_tensor.unsqueeze(0).to(device)
 # debug
 print(inputs)
 from transformers import TextStreamer
