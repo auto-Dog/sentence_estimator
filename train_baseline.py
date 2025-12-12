@@ -30,7 +30,7 @@ device = model.device
 processor = AutoProcessor.from_pretrained(MODEL_NAME)
 # processor = ColorSensitiveProcessor.from_pretrained(MODEL_NAME)
 # processor.__dict__.update(base_processor.__dict__)
-collator = ColorSimulateCollator(processor)
+collator = ColorSimulateCollator(processor,cvd_type=CVD_TYPE)
 print(model)    # 显示模型结构
 
 training_args = SFTConfig(

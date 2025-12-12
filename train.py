@@ -125,7 +125,7 @@ inputs = processor(
 ).to(device)
 img = cv2.imread(image)
 img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-img = cv2.resize(img, (640,480))
+# img = cv2.resize(img, (640,480))
 transf = transforms.ToTensor()
 img_tensor = transf(img)
 inputs["ori_images"] = img_tensor.unsqueeze(0).to(device)

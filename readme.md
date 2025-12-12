@@ -29,6 +29,7 @@ DEBUG：
 -[x] Trainer
 
 -[] DP (Data Parallel)
+-[] Compare DIY enhancement processor with simulate collator at DEU80
   
 ## Discussion
 * 用哪个框架？
