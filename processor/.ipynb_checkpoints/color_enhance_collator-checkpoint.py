@@ -51,7 +51,7 @@ class ColorSensitiveCollator:
     def __call__(self, inputs):
         # print(f"inputs{inputs[0]}") # debug
         # print("==================================")
-        texts = [self.processor.apply_chat_template(example["messages"], tokenize=False) for example in inputs]
+        texts = [self.processor.apply_chat_template(example["messages"], tokenize=False, add_generation_prompt=True) for example in inputs]
         # 读取图像，智能resize，并padding至统一维度，便于处理. 统一用PIL格式，避免接口不明确
         image_inputs = []
         image_inputs_tmp = []

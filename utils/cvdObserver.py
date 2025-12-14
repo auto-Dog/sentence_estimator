@@ -6,10 +6,10 @@ import torch.nn as nn
 from PIL import Image
 import matplotlib.pyplot as plt
 import torch.nn.functional as F
-
+from torchvision.transforms import Normalize
 class cvdSimulateNet(nn.Module):
     ''' 将输入图像转成CVD眼中的图像，目前只模拟色盲'''
-    def __init__(self, cvd_type='protan', cuda=False, batched_input=False) -> None:
+    def __init__(self, cvd_type='protan', cuda=False, batched_input=False, normalize=False) -> None:
         super().__init__()
         self.cvd_type = cvd_type
         self.cuda_flag = cuda
@@ -36,6 +36,9 @@ class cvdSimulateNet(nn.Module):
         self.register_buffer('rgb_to_xyz_mat', torch.from_numpy(rgb_to_xyz_mat).float())
         ref_threshold = torch.tensor([0.586,0.293,0.025]).float()
         self.register_buffer('ref_threshold', ref_threshold)
+        self.normalize = normalize
+        # RGB均匀分布下的αLMS空间统计量
+        self.normalize_transform = Normalize(mean=[0.1819, 0.0847, 0.0080], std=[0.1237, 0.0666, 0.0068])
 
     def einsum_dot_tensor(self,batched_image,matrix):    # input BCHW
         return torch.einsum('vi,biju->bvju',matrix,batched_image)
@@ -149,6 +152,8 @@ class cvdSimulateNet(nn.Module):
             lms_image_cvd = lms_image_cvd.squeeze(0)
         # 添加噪声，模拟人眼对颜色的感知 y=Hx+n. 由于加噪声步骤包含不可微操作，故进行STE
         lms_image_cvd = (self.add_noise(lms_image_cvd) - lms_image_cvd).detach()+lms_image_cvd 
+        if self.normalize:
+            lms_image_cvd = self.normalize_transform(lms_image_cvd)
         return lms_image_cvd
     
 

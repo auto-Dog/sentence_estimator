@@ -43,11 +43,11 @@ class HierarchicalModel(PreTrainedModel):
         
         # 可学习模块（确保是 nn.Module）
         self.color_filter = color_filter
-        class debugFilter(nn.Module):
-            def __init__(self):
-                super().__init__()
-            def forward(self,x):
-                return x
+        # class debugFilter(nn.Module):
+        #     def __init__(self):
+        #         super().__init__()
+        #     def forward(self,x):
+        #         return x
         # self.color_filter = debugFilter()
         self.cvd_simulator = cvd_simulator
         self.trans_compose_forward = transforms.Compose(

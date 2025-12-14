@@ -9,16 +9,22 @@ import math
 from PIL import Image
 import numpy as np
 from utils.cvdObserver import cvdSimulateNet
-
+from network import CVDSimulateNetMachado
 class ColorSimulateCollator:
     def __init__(self, processor, cvd_type="protan_80"):
         self.processor = processor
         self.patch_size = 16
         self.merge_size = 2
         self.cvdSimulateNet = cvdSimulateNet(cvd_type=cvd_type, cuda=False, batched_input=False)
+        # if cvd_type.startswith("deutan"):
+        #     severity = float(cvd_type.split("_")[-1])/100.
+        #     self.cvdSimulateNet = CVDSimulateNetMachado(cvd_type="Deuteranomaly",severity=severity)
+        # elif cvd_type.startswith("protan"):
+        #     severity = float(cvd_type.split("_")[-1])/100.
+        #     self.cvdSimulateNet = CVDSimulateNetMachado(cvd_type="Protanomaly",severity=severity)
     
     def __call__(self, inputs):
-        texts = [self.processor.apply_chat_template(example["messages"], tokenize=False) for example in inputs]
+        texts = [self.processor.apply_chat_template(example["messages"], tokenize=False, add_generation_prompt=True) for example in inputs]
         # 读取图像
         image_inputs = []
         image_inputs_tmp = []

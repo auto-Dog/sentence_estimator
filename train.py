@@ -75,16 +75,14 @@ dataset_eval = dataset.select(range(int(0.8 * len(dataset)), len(dataset)))
 
 
 def process_example(example:dict):   
-    # 注意：原始格式是ms-swift风格 {"messages": [{"role": ..., "content": ..., "images": [...]}]}，
+    # 注意：原始格式是ms-swift风格 {"messages": [{"role": ..., "content": ..., }]， "images": [...]}，
     # 现在改为 {"messages": [{"role": ..., "content": [{"type": "text", "text": ...}, {"type": "image", "image": ...}]}]}
     message_tmp = []  # 初始化空的对话
     for i,item in enumerate(example["messages"]):
         mesage_temp_i = {}
         mesage_temp_i["role"] = item["role"]
-        if item["content"].startswith("<image>"):
-            continue
-        elif item["role"]=="user":
-            mesage_temp_i["content"] = [{"type": "text", "text": item["content"] },{"type": "image", "image": example["image"]}]
+        if item["role"]=="user":
+            mesage_temp_i["content"] = [{"type": "image", "image": example["image"]},{"type": "text", "text": item["content"] },]
         else:
             mesage_temp_i["content"] = [{"type": "text", "text": item["content"] }]
         message_tmp.append(mesage_temp_i)
@@ -116,7 +114,7 @@ sample_message = [
 }
 ]
 image = sample_message[0]["image"]
-input_text = processor.apply_chat_template(sample_message[0]["messages"], tokenize=False)
+input_text = processor.apply_chat_template(sample_message[0]["messages"], tokenize=False, add_generation_prompt=True)
 inputs = processor(
     text=[input_text], 
     images=[image], 
