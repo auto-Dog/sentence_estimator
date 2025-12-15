@@ -20,8 +20,8 @@ import cv2
 MODEL_NAME = "/root/sentence_estimator/output_color_sensitive/deu80-checkpoint-500/"  # 或任何支持 swift 的多模态模型
 DATA_PATH = "/root/color_150k.json"  # SFT 数据：包含 {"instruction": ..., "output": ...}
 OUTPUT_DIR = "./output_color_sensitive_enhance"
-CVD_TYPE = "deutan_80"
-CVD_SEVERITY = 1.0
+CVD_TYPE = "Deuteranomaly"
+CVD_SEVERITY = 0.5
 
 # ===== 加载模型与processor =====
 model = AutoModelForImageTextToText.from_pretrained(
@@ -35,7 +35,7 @@ processor = AutoProcessor.from_pretrained(MODEL_NAME)
 collator = ColorSensitiveCollator(processor)
 
 model = HierarchicalModel(
-    cvd_simulator=cvdSimulateNet(cvd_type=CVD_TYPE, cuda=True, batched_input=True).to(device,dtype=dtype),
+    cvd_simulator=CVDSimulateNetMachado(cvd_type=CVD_TYPE, severity=CVD_SEVERITY).to(device,dtype=dtype),
     color_filter=colorFilter().to(device,dtype=dtype),
     vlm_model=model,
 )
@@ -81,14 +81,17 @@ def process_example(example:dict):
     for i,item in enumerate(example["messages"]):
         mesage_temp_i = {}
         mesage_temp_i["role"] = item["role"]
-        if item["role"]=="user":
+        if item["role"]=="user" and "<image>" in item["content"]:
             mesage_temp_i["content"] = [{"type": "image", "image": example["image"]},{"type": "text", "text": item["content"] },]
+        elif item["role"]=="user" and "<image>" not in item["content"]:
+            mesage_temp_i["content"] = [{"type": "text", "text": item["content"] }]
         else:
             mesage_temp_i["content"] = [{"type": "text", "text": item["content"] }]
         message_tmp.append(mesage_temp_i)
     example.pop("messages")
     example["messages"] = message_tmp
     return example
+
 # 注意：datasets会将字段自动补全到相同格式，比如"type": "text", "text": xxx, "image": None
 # 所以不要用map，用迭代处理
 dataset_train = [process_example(example) for example in dataset_train]

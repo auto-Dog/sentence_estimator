@@ -16,7 +16,8 @@ class ColorSensitiveTrainer(SFTTrainer):
         enhance_image = outputs.get("enhance_images")
         # image_pixels = inputs.get("pixel_values") # pixel_values is the reshaped enhance image
         ssim_loss = self.ssim_loss(ori_image, enhance_image)
-        ssim_weight = 1 - min(0.8, self._ssim_step_counter / 500)
+        # ssim loss:0-500 iter, =1, 500-875 iter, 0.2~1, 875-iter, 0.2
+        ssim_weight = min(1, 1 - min(0.8, (self._ssim_step_counter-500) / 500))
         self._ssim_step_counter += 1
         loss = (1-ssim_weight) * loss + ssim_weight * ssim_loss
         self._metrics[mode]["ssim_loss"].append(ssim_loss.item())

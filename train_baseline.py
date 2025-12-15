@@ -91,14 +91,17 @@ def process_example(example:dict):
     for i,item in enumerate(example["messages"]):
         mesage_temp_i = {}
         mesage_temp_i["role"] = item["role"]
-        if item["role"]=="user":
-            mesage_temp_i["content"] = [{"type": "image", "image": example["image"]},{"type": "text", "text": item["content"] }]
+        if item["role"]=="user" and "<image>" in item["content"]:
+            mesage_temp_i["content"] = [{"type": "image", "image": example["image"]},{"type": "text", "text": item["content"] },]
+        elif item["role"]=="user" and "<image>" not in item["content"]:
+            mesage_temp_i["content"] = [{"type": "text", "text": item["content"] }]
         else:
             mesage_temp_i["content"] = [{"type": "text", "text": item["content"] }]
         message_tmp.append(mesage_temp_i)
     example.pop("messages")
     example["messages"] = message_tmp
     return example
+
 # 注意：datasets会将字段自动补全到相同格式，比如"type": "text", "text": xxx, "image": None
 # 所以不要用map，用迭代处理
 dataset_train = [process_example(example) for example in dataset_train]
